@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>APP</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            color: #333;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: white;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+        }
+
+        h2 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        form {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        input,
+        select,
+        textarea,
+        button {
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+
+        button {
+            background-color: #1DA1F2;
+            color: white;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #0d85d1;
+        }
+
+        a {
+            color: #1DA1F2;
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .tweet {
+            background-color: #fff;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 5px;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .tweet .username {
+            font-weight: bold;
+        }
+
+        .tweet .tweet-text {
+            margin-top: 10px;
+        }
+
+        .tweets-container {
+            margin-top: 30px;
+        }
+
+        .user-info {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .user-info span {
+            font-weight: bold;
+        }
+
+        .register-link {
+            text-align: center;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h2>App</h2>
+
+        <div class="user-info" id="userInfo">
+            <span id="usernameDisplay">Please log in</span>
+        </div>
+
+        <!-- Login Form -->
+        <div id="loginForm" class="form-container">
+            <h3>Login</h3>
+            <form id="login">
+                <label for="loginUsername">Username:</label>
+                <input type="text" id="loginUsername" name="username" required>
+
+                <label for="loginPassword">Password:</label>
+                <input type="password" id="loginPassword" name="password" required>
+
+                <button type="submit">Login</button>
+            </form>
+            <p class="register-link">Don't have an account? <a href="javascript:void(0)" onclick="toggleRegisterForm()">Register here</a></p>
+        </div>
+
+        <!-- Register Form -->
+        <div id="registerForm" class="form-container" style="display: none;">
+            <h3>Register</h3>
+            <form id="register">
+                <label for="registerUsername">Username:</label>
+                <input type="text" id="registerUsername" name="username" required>
+
+                <label for="registerPassword">Password:</label>
+                <input type="password" id="registerPassword" name="password" required>
+
+                <label for="registerName">Name:</label>
+                <input type="text" id="registerName" name="name" required>
+
+                <label for="registerGender">Gender:</label>
+                <select id="registerGender" name="gender">
+                    <option value="male">Male</option>
+                    <option value="female">Female</option>
+                    <option value="other">Other</option>
+                </select>
+
+                <button type="submit">Register</button>
+            </form>
+            <p class="register-link">Already have an account? <a href="javascript:void(0)" onclick="toggleRegisterForm()">Login here</a></p>
+        </div>
+
+        <!-- Tweet Creation and Display -->
+        <div class="tweets-container" id="tweetsContainer">
+            <h3>Your Feed</h3>
+            <form id="tweetForm" style="display: none;">
+                <textarea id="tweetText" placeholder="What's happening?" required></textarea>
+                <button type="submit">Tweet</button>
+            </form>
+
+            <div id="tweetList"></div>
+        </div>
+    </div>
+
+    <script>
+        const apiUrl = 'http://localhost:3000'; // Replace with your server URL
+
+        // Utility to show/hide forms
+        function toggleRegisterForm() {
+            const loginForm = document.getElementById('loginForm');
+            const registerForm = document.getElementById('registerForm');
+            loginForm.style.display = loginForm.style.display === 'none' ? 'block' : 'none';
+            registerForm.style.display = registerForm.style.display === 'none' ? 'block' : 'none';
+        }
+
+        // Handle login
+        document.getElementById('login').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const username = document.getElementById('loginUsername').value;
+            const password = document.getElementById('loginPassword').value;
+
+            const response = await fetch(`${apiUrl}/login/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ username, password }),
+            });
+
+            const data = await response.json();
+            if (response.ok) {
+                localStorage.setItem('jwtToken', data.jwtToken);
+                document.getElementById('usernameDisplay').innerText = `Welcome, ${username}`;
+                loadTweets();
+                document.getElementById('loginForm').style.display = 'none';
+                document.getElementById('tweetForm').style.display = 'block';
+            } else {
+                alert(data.message || 'Login failed');
+            }
+        });
+
+        // Handle register
+        document.getElementById('register').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const username = document.getElementById('registerUsername').value;
+            const password = document.getElementById('registerPassword').value;
+            const name = document.getElementById('registerName').value;
+            const gender = document.getElementById('registerGender').value;
+
+            const response = await fetch(`${apiUrl}/register/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ username, password, name, gender }),
+            });
+
+            const data = await response.json();
+            if (response.ok) {
+                alert('User registered successfully');
+                toggleRegisterForm();
+            } else {
+                alert(data.message || 'Registration failed');
+            }
+        });
+
+        // Load tweets
+        async function loadTweets() {
+            const jwtToken = localStorage.getItem('jwtToken');
+            if (!jwtToken) return;
+
+            const response = await fetch(`${apiUrl}/user/tweets/feed/`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${jwtToken}`,
+                },
+            });
+
+            const tweets = await response.json();
+            const tweetList = document.getElementById('tweetList');
+            tweetList.innerHTML = ''; // Clear existing tweets
+            tweets.forEach(tweet => {
+                const tweetDiv = document.createElement('div');
+                tweetDiv.classList.add('tweet');
+                tweetDiv.innerHTML = `<span class="username">${tweet.username}</span><div class="tweet-text">${tweet.tweet}</div><div class="date">${tweet.dateTime}</div>`;
+                tweetList.appendChild(tweetDiv);
+            });
+        }
+
+        // Handle new tweet submission
+        document.getElementById('tweetForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const tweetText = document.getElementById('tweetText').value;
+            const jwtToken = localStorage.getItem('jwtToken');
+
+            const response = await fetch(`${apiUrl}/user/tweets/`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${jwtToken}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ tweet: tweetText }),
+            });
+
+            if (response.ok) {
+                document.getElementById('tweetText').value = '';
+                loadTweets();
+            } else {
+                alert('Error posting tweet');
+            }
+        });
+    </script>
+</body>
+
+</html>
